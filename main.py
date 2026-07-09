@@ -1,14 +1,3 @@
-"""A small original platformer built with Pygame Zero.
-
-Controls
---------
-Menu   : click the buttons with the mouse.
-Play   : LEFT/RIGHT (or A/D) to move, SPACE (or UP) to jump.
-
-The hero must reach the flag while avoiding two patrolling enemies
-(a ground slime and a flying bat) and may collect coins along the way.
-"""
-import random
 from pygame import Rect
 
 WIDTH = 800
@@ -19,13 +8,7 @@ TILE_W = 64
 TILE_H = 24
 GROUND_Y = HEIGHT - TILE_H
 
-# ---------------------------------------------------------------------------
-# Small helpers
-# ---------------------------------------------------------------------------
-
-
 def actor_rect(actor):
-    """Builds a plain Rect from a Pygame Zero Actor for collision checks."""
     return Rect(actor.left, actor.top, actor.width, actor.height)
 
 
@@ -34,15 +17,13 @@ def play_sound(name):
         getattr(sounds, name).play()
 
 
-# ---------------------------------------------------------------------------
-# Reusable animation base class (OOP requirement)
-# ---------------------------------------------------------------------------
-
+class AnimatedActor:
+    ...
 
 class AnimatedActor:
-    """Wraps a Pygame Zero Actor with idle/walk sprite-sheet animation."""
+    # Karakter animasyonlarını yönetir
 
-    FRAME_DURATION = 0.12
+    animation_speed = 0.12
 
     def __init__(self, idle_frames, walk_frames, pos):
         self.idle_frames = idle_frames
@@ -59,10 +40,10 @@ class AnimatedActor:
             return frames
         return [name + "_l" for name in frames]
 
-    def update_animation(self, dt):
+    def animate(self, dt):
         frames = self._frame_list()
         self.frame_timer += dt
-        if self.frame_timer >= self.FRAME_DURATION:
+        if self.frame_timer >= self.animation_speed:
             self.frame_timer = 0.0
             self.frame_index += 1
         self.frame_index %= len(frames)
@@ -71,10 +52,6 @@ class AnimatedActor:
     def draw(self):
         self.actor.draw()
 
-
-# ---------------------------------------------------------------------------
-# Hero
-# ---------------------------------------------------------------------------
 
 
 class Hero(AnimatedActor):
@@ -110,18 +87,23 @@ class Hero(AnimatedActor):
             self.on_ground = False
             play_sound("jump")
 
-    def _resolve_platform_landing(self, platforms):
+    def check_platform(self, platforms, previous_bottom):
         self.on_ground = False
         if self.velocity_y < 0:
             return
         hero_rect = actor_rect(self.actor)
         for platform in platforms:
-            if hero_rect.colliderect(platform.rect):
-                previous_bottom = hero_rect.bottom - self.velocity_y * 0
-                if hero_rect.bottom - 18 <= platform.rect.top <= hero_rect.bottom + 4:
-                    self.actor.bottom = platform.rect.top
-                    self.velocity_y = 0
-                    self.on_ground = True
+            overlaps_x = (hero_rect.right > platform.rect.left
+                          and hero_rect.left < platform.rect.right)
+            if not overlaps_x:
+                continue
+            crossed_top = (previous_bottom <= platform.rect.top + 1
+                           and hero_rect.bottom >= platform.rect.top)
+            if crossed_top:
+                self.actor.bottom = platform.rect.top
+                self.velocity_y = 0
+                self.on_ground = True
+                break
 
     def update(self, dt, platforms):
         if not self.alive:
@@ -130,23 +112,18 @@ class Hero(AnimatedActor):
         self.actor.x += dx * dt
         self.actor.x = max(20, min(WIDTH - 20, self.actor.x))
 
+        previous_bottom = self.actor.bottom
         self.velocity_y += self.GRAVITY * dt
         self.actor.y += self.velocity_y * dt
-        self._resolve_platform_landing(platforms)
+        self.check_platform(platforms, previous_bottom)
 
         if self.actor.y > HEIGHT + 60:
             self.alive = False
 
-        self.update_animation(dt)
-
-
-# ---------------------------------------------------------------------------
-# Enemies
-# ---------------------------------------------------------------------------
-
+        self.animate(dt)
 
 class Enemy(AnimatedActor):
-    """An enemy that patrols back and forth between two x positions."""
+    # Düşman belirlenen alanda gidip gelir
 
     def __init__(self, idle_frames, walk_frames, pos, min_x, max_x, speed):
         super().__init__(idle_frames, walk_frames, pos)
@@ -165,15 +142,10 @@ class Enemy(AnimatedActor):
             self.actor.x = self.max_x
             self.speed = -abs(self.speed)
             self.facing_right = False
-        self.update_animation(dt)
+        self.animate(dt)
 
     def hits(self, hero):
         return actor_rect(self.actor).colliderect(actor_rect(hero.actor))
-
-
-# ---------------------------------------------------------------------------
-# Level pieces
-# ---------------------------------------------------------------------------
 
 
 class Platform:
@@ -244,9 +216,6 @@ class Button:
         return False
 
 
-# ---------------------------------------------------------------------------
-# Global game state
-# ---------------------------------------------------------------------------
 
 game_state = "menu"
 sound_on = True
@@ -333,11 +302,6 @@ end_buttons = [
     Button("Tekrar Oyna", WIDTH / 2 - 110, 340, 220, 56, start_game),
     Button("Ana Menu", WIDTH / 2 - 110, 410, 220, 56, go_to_menu),
 ]
-
-
-# ---------------------------------------------------------------------------
-# Pygame Zero hooks
-# ---------------------------------------------------------------------------
 
 
 def update(dt):

@@ -1,15 +1,11 @@
-"""Generates all placeholder sound effects and background music.
-
-Everything is synthesised from scratch with plain sine/square waves so
-the project has no dependency on external audio files.
-Run once with: python3 generate_sounds.py
-"""
 import numpy as np
 import wave
 import os
 
 SOUND_DIR = "sounds"
 MUSIC_DIR = "music"
+
+
 os.makedirs(SOUND_DIR, exist_ok=True)
 os.makedirs(MUSIC_DIR, exist_ok=True)
 
@@ -17,6 +13,7 @@ RATE = 22050
 
 
 def to_wav(samples, path):
+    # Ses verisini wav dosyasına kaydet
     samples = np.clip(samples, -1, 1)
     data = (samples * 32767).astype(np.int16)
     with wave.open(path, "w") as f:
@@ -28,18 +25,21 @@ def to_wav(samples, path):
 
 def tone(freq, duration, wave_type="sine", fade=True):
     t = np.linspace(0, duration, int(RATE * duration), endpoint=False)
+
     if wave_type == "sine":
         s = np.sin(2 * np.pi * freq * t)
     elif wave_type == "square":
         s = np.sign(np.sin(2 * np.pi * freq * t))
     else:
         s = np.sin(2 * np.pi * freq * t)
+
     if fade:
         fade_len = max(1, int(RATE * 0.01))
         env = np.ones_like(s)
         env[:fade_len] = np.linspace(0, 1, fade_len)
         env[-fade_len:] = np.linspace(1, 0, fade_len)
         s *= env
+
     return s
 
 
@@ -79,7 +79,7 @@ def make_win():
 
 
 def make_music():
-    # Simple looping four-note melody used as background music.
+
     melody = [392, 440, 494, 440, 392, 349, 392, 440]
     parts = [tone(f, 0.3, "sine") * 0.25 for f in melody]
     s = np.concatenate(parts)
@@ -92,4 +92,5 @@ make_hit()
 make_click()
 make_win()
 make_music()
-print("Sounds generated.")
+
+print("Ses dosyalari olusturuldu")
