@@ -7,6 +7,9 @@ TITLE = "Cloud Runner"
 TILE_W = 64
 TILE_H = 24
 GROUND_Y = HEIGHT - TILE_H
+MAX_DT = 0.05
+FIXED_STEP = 1 / 60
+
 
 def actor_rect(actor):
     return Rect(actor.left, actor.top, actor.width, actor.height)
@@ -18,16 +21,16 @@ def play_sound(name):
 
 
 class AnimatedActor:
-    ...
-
-class AnimatedActor:
     # Karakter animasyonlarını yönetir
-
     animation_speed = 0.12
 
     def __init__(self, idle_frames, walk_frames, pos):
         self.idle_frames = idle_frames
         self.walk_frames = walk_frames
+    
+        self.idle_frames_l = [name + "_l" for name in idle_frames]
+        self.walk_frames_l = [name + "_l" for name in walk_frames]
+        
         self.actor = Actor(idle_frames[0], pos)
         self.frame_index = 0
         self.frame_timer = 0.0
@@ -35,23 +38,27 @@ class AnimatedActor:
         self.is_moving = False
 
     def _frame_list(self):
-        frames = self.walk_frames if self.is_moving else self.idle_frames
-        if self.facing_right:
-            return frames
-        return [name + "_l" for name in frames]
+        # Listeleri yeniden oluşturmak yerine, önceden oluşturduklarımızı döndürüyoruz
+        if self.is_moving:
+            return self.walk_frames if self.facing_right else self.walk_frames_l
+        return self.idle_frames if self.facing_right else self.idle_frames_l
 
     def animate(self, dt):
         frames = self._frame_list()
         self.frame_timer += dt
+        
         if self.frame_timer >= self.animation_speed:
             self.frame_timer = 0.0
             self.frame_index += 1
+            
         self.frame_index %= len(frames)
-        self.actor.image = frames[self.frame_index]
+   
+        new_image = frames[self.frame_index]
+        if self.actor.image != new_image:
+            self.actor.image = new_image
 
     def draw(self):
         self.actor.draw()
-
 
 
 class Hero(AnimatedActor):
@@ -61,7 +68,12 @@ class Hero(AnimatedActor):
 
     def __init__(self, pos):
         idle_frames = ["hero_idle_0", "hero_idle_1"]
-        walk_frames = ["hero_walk_0", "hero_walk_1", "hero_walk_2", "hero_walk_3"]
+        walk_frames = [
+            "hero_walk_0",
+            "hero_walk_1",
+            "hero_walk_2",
+            "hero_walk_3",
+        ]
         super().__init__(idle_frames, walk_frames, pos)
         self.velocity_y = 0.0
         self.on_ground = False
@@ -121,6 +133,7 @@ class Hero(AnimatedActor):
             self.alive = False
 
         self.animate(dt)
+
 
 class Enemy(AnimatedActor):
     # Düşman belirlenen alanda gidip gelir
@@ -192,22 +205,35 @@ class Coin:
 
 
 class Button:
-    def __init__(self, text, x, y, width, height, callback):
+    def __init__(
+        self,
+        text,
+        x,
+        y,
+        width,
+        height,
+        callback,
+        fontsize=30,
+        outlined=True,
+    ):
         self.text = text
         self.rect = Rect(x, y, width, height)
         self.callback = callback
+        self.fontsize = fontsize
+        self.outlined = outlined
 
     def draw(self):
         screen.draw.filled_rect(self.rect, (45, 55, 90))
         screen.draw.rect(self.rect, (230, 230, 240))
-        screen.draw.text(
-            self.text,
-            center=self.rect.center,
-            fontsize=30,
-            color="white",
-            owidth=0.5,
-            ocolor="black",
-        )
+        options = {
+            "center": self.rect.center,
+            "fontsize": self.fontsize,
+            "color": "white",
+        }
+        if self.outlined:
+            options["owidth"] = 0.5
+            options["ocolor"] = "black"
+        screen.draw.text(self.text, **options)
 
     def handle_click(self, pos):
         if self.rect.collidepoint(pos):
@@ -215,6 +241,82 @@ class Button:
             return True
         return False
 
+
+class IconButton:
+    def __init__(self, icon, x, y, width, height, callback):
+        self.icon = icon
+        self.rect = Rect(x, y, width, height)
+        self.callback = callback
+
+    def draw(self):
+        screen.draw.filled_rect(self.rect, (45, 55, 90))
+        screen.draw.rect(self.rect, (230, 230, 240))
+        center_x, center_y = self.rect.center
+
+        if self.icon == "pause":
+            if game_state == "paused":
+                screen.draw.line(
+                    (center_x - 7, center_y - 9),
+                    (center_x + 9, center_y),
+                    "white",
+                )
+                screen.draw.line(
+                    (center_x + 9, center_y),
+                    (center_x - 7, center_y + 9),
+                    "white",
+                )
+                screen.draw.line(
+                    (center_x - 7, center_y + 9),
+                    (center_x - 7, center_y - 9),
+                    "white",
+                )
+            else:
+                screen.draw.filled_rect(
+                    Rect(center_x - 8, center_y - 10, 5, 20),
+                    "white",
+                )
+                screen.draw.filled_rect(
+                    Rect(center_x + 4, center_y - 10, 5, 20),
+                    "white",
+                )
+        elif self.icon == "sound":
+            screen.draw.filled_rect(
+                Rect(center_x - 11, center_y - 5, 7, 10),
+                "white",
+            )
+            screen.draw.line(
+                (center_x - 4, center_y - 8),
+                (center_x + 6, center_y - 14),
+                "white",
+            )
+            screen.draw.line(
+                (center_x - 4, center_y + 8),
+                (center_x + 6, center_y + 14),
+                "white",
+            )
+            if not sound_on:
+                screen.draw.line(
+                    (center_x - 13, center_y + 13),
+                    (center_x + 13, center_y - 13),
+                    "white",
+                )
+        elif self.icon == "exit":
+            screen.draw.line(
+                (center_x - 10, center_y - 10),
+                (center_x + 10, center_y + 10),
+                "white",
+            )
+            screen.draw.line(
+                (center_x + 10, center_y - 10),
+                (center_x - 10, center_y + 10),
+                "white",
+            )
+
+    def handle_click(self, pos):
+        if self.rect.collidepoint(pos):
+            self.callback()
+            return True
+        return False
 
 
 game_state = "menu"
@@ -244,7 +346,12 @@ def build_level():
     enemies = [
         Enemy(
             ["enemy1_idle_0", "enemy1_idle_1"],
-            ["enemy1_walk_0", "enemy1_walk_1", "enemy1_walk_2", "enemy1_walk_3"],
+            [
+                "enemy1_walk_0",
+                "enemy1_walk_1",
+                "enemy1_walk_2",
+                "enemy1_walk_3",
+            ],
             (250, GROUND_Y - 20),
             min_x=90,
             max_x=650,
@@ -252,7 +359,12 @@ def build_level():
         ),
         Enemy(
             ["enemy2_idle_0", "enemy2_idle_1"],
-            ["enemy2_walk_0", "enemy2_walk_1", "enemy2_walk_2", "enemy2_walk_3"],
+            [
+                "enemy2_walk_0",
+                "enemy2_walk_1",
+                "enemy2_walk_2",
+                "enemy2_walk_3",
+            ],
             (420, 340),
             min_x=340,
             max_x=600,
@@ -263,7 +375,8 @@ def build_level():
 
 def flag_rect():
     platform = platforms[-1]
-    return Rect(platform.x + platform.tiles * TILE_W - 40, platform.y - 64, 40, 64)
+    flag_x = platform.x + platform.tiles * TILE_W - 40
+    return Rect(flag_x, platform.y - 64, 40, 64)
 
 
 def start_game():
@@ -277,7 +390,7 @@ def start_game():
 def toggle_sound():
     global sound_on
     sound_on = not sound_on
-    if sound_on:
+    if sound_on and game_state == "playing":
         music.play("theme")
     else:
         music.stop()
@@ -286,10 +399,28 @@ def toggle_sound():
 def go_to_menu():
     global game_state
     game_state = "menu"
+    music.stop()
 
 
 def exit_game():
     quit()
+
+
+def toggle_pause():
+    global game_state
+    if game_state == "playing":
+        game_state = "paused"
+        music.pause()
+    elif game_state == "paused":
+        game_state = "playing"
+        if sound_on:
+            music.unpause()
+
+
+def pause_button_text():
+    if game_state == "paused":
+        return "Devam"
+    return "Dur"
 
 
 menu_buttons = [
@@ -303,11 +434,27 @@ end_buttons = [
     Button("Ana Menu", WIDTH / 2 - 110, 410, 220, 56, go_to_menu),
 ]
 
+gameplay_buttons = [
+    IconButton("pause", WIDTH - 146, 12, 38, 34, toggle_pause),
+    IconButton("sound", WIDTH - 98, 12, 38, 34, toggle_sound),
+    IconButton("exit", WIDTH - 50, 12, 38, 34, go_to_menu),
+]
+
 
 def update(dt):
     global game_state, score
     if game_state != "playing":
         return
+
+    remaining_time = min(dt, MAX_DT)
+    while remaining_time > 0 and game_state == "playing":
+        step = min(remaining_time, FIXED_STEP)
+        update_playing(step)
+        remaining_time -= step
+
+
+def update_playing(dt):
+    global game_state, score
 
     hero.update(dt, platforms)
     for enemy in enemies:
@@ -344,6 +491,10 @@ def draw():
         draw_menu()
     elif game_state == "playing":
         draw_gameplay()
+    elif game_state == "paused":
+        draw_gameplay(draw_buttons=False)
+        draw_pause_overlay()
+        draw_gameplay_buttons()
     elif game_state == "win":
         draw_end_screen("Kazandin!", (60, 170, 90))
     elif game_state == "lose":
@@ -352,15 +503,25 @@ def draw():
 
 def draw_menu():
     screen.draw.text(
-        TITLE, center=(WIDTH / 2, 150), fontsize=64, color="white", owidth=1, ocolor="black"
+        TITLE,
+        center=(WIDTH / 2, 150),
+        fontsize=64,
+        color="white",
+        owidth=1,
+        ocolor="black",
     )
     for button in menu_buttons:
         button.draw()
     status = "Ses: Acik" if sound_on else "Ses: Kapali"
-    screen.draw.text(status, center=(WIDTH / 2, 470), fontsize=24, color="white")
+    screen.draw.text(
+        status,
+        center=(WIDTH / 2, 470),
+        fontsize=24,
+        color="white",
+    )
 
 
-def draw_gameplay():
+def draw_gameplay(draw_buttons=True):
     for platform in platforms:
         platform.draw()
     screen.blit("flag", (flag_rect().x, flag_rect().y))
@@ -369,14 +530,51 @@ def draw_gameplay():
     for enemy in enemies:
         enemy.draw()
     hero.draw()
-    screen.draw.text(f"Coins: {score}/{len(coins)}", (16, 12), fontsize=28, color="white")
+    screen.draw.text(
+        f"Coins: {score}/{len(coins)}",
+        (16, 12),
+        fontsize=28,
+        color="white",
+    )
+    if draw_buttons:
+        draw_gameplay_buttons()
+
+
+def draw_gameplay_buttons():
+    for button in gameplay_buttons:
+        button.draw()
+
+
+def draw_pause_overlay():
+    screen.draw.filled_rect(Rect(0, 0, WIDTH, HEIGHT), (0, 0, 0, 120))
+    screen.draw.text(
+        "Oyun Durdu",
+        center=(WIDTH / 2, HEIGHT / 2 - 20),
+        fontsize=52,
+        color="white",
+        owidth=1,
+        ocolor="black",
+    )
+    screen.draw.text(
+        "Devam etmek icin Devam butonuna tikla",
+        center=(WIDTH / 2, HEIGHT / 2 + 34),
+        fontsize=26,
+        color="white",
+        owidth=0.5,
+        ocolor="black",
+    )
 
 
 def draw_end_screen(title, color):
     screen.draw.filled_rect(Rect(0, 0, WIDTH, HEIGHT), (0, 0, 0))
     screen.draw.text(title, center=(WIDTH / 2, 220), fontsize=56, color=color)
     coin_text = f"Toplanan coin: {score}/{len(coins)}"
-    screen.draw.text(coin_text, center=(WIDTH / 2, 280), fontsize=28, color="white")
+    screen.draw.text(
+        coin_text,
+        center=(WIDTH / 2, 280),
+        fontsize=28,
+        color="white",
+    )
     for button in end_buttons:
         button.draw()
 
@@ -384,6 +582,11 @@ def draw_end_screen(title, color):
 def on_mouse_down(pos):
     if game_state == "menu":
         for button in menu_buttons:
+            if button.handle_click(pos):
+                play_sound("click")
+                break
+    elif game_state in ("playing", "paused"):
+        for button in gameplay_buttons:
             if button.handle_click(pos):
                 play_sound("click")
                 break

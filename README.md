@@ -9,32 +9,33 @@ pip install pgzero
 pgzrun main.py
 ```
 
+macOS'ta `pgzrun` terminalde bulunmazsa:
+
+```bash
+/Users/namelessmuse/Library/Python/3.9/bin/pgzrun main.py
+```
+
 ## Kontroller
 - Menüde: fare ile butonlara tıkla (Oyuna Başla / Ses Aç-Kapat / Çıkış)
 - Oyunda: ←/→ (veya A/D) hareket, SPACE (veya ↑) zıplama
+- Oyun sırasında: sağ üstteki Durdur/Devam, Ses Aç/Kapat ve Çıkış butonları
 
 ## Gereksinimlerin nasıl karşılandığı
-- **Sadece izinli modüller:** `pgzero`, `math`, `random`, ve istisna olarak `pygame.Rect`. Başka hiçbir kütüphane kullanılmadı.
+- **Sadece izinli modüller:** Oyun kodunda yalnızca Pygame Zero'nun sağladığı nesneler ve izin verilen istisna olarak `pygame.Rect` kullanıldı. Başka kütüphane import edilmedi.
 - **Oyun türü:** Platformer (yan görünüm, zıplanabilir platformlar).
 - **Ana menü:** Tıklanabilir "Oyuna Başla", "Ses Aç/Kapat", "Çıkış" butonları (`Button` sınıfı).
+- **Oyun içi butonlar:** Oyun sırasında sağ üstten oyunu durdurup devam ettirme, sesi açıp kapatma ve ana menüye çıkma.
 - **İki tehlikeli düşman:** `enemy1` (yerde devriye gezen slime) ve `enemy2` (havada uçan yarasa), ikisi de kendi bölgelerinde (min_x–max_x arası) gidip geliyor.
 - **Kazanma/kaybetme mekaniği:** Bayrağa ulaşmak = kazanma; düşmana çarpmak ya da haritadan düşmek = kaybetme. Hatasız, net kurallarla.
-- **Hareket halinde sprite animasyonu:** Kahramanın 4 karelik yürüme animasyonu, düşmanların yürüme/kanat çırpma animasyonları (`AnimatedActor.update_animation`).
-- **Sesler:** Zıplama, coin toplama, düşmana çarpma, kazanma ve buton tıklama sesleri + döngülü arka plan müziği. Tüm sesler kod ile (sinüs/kare dalga) sentezlendi, dışarıdan indirilmedi — tamamen özgün.
+- **Hareket halinde sprite animasyonu:** Kahramanın 4 karelik yürüme animasyonu, düşmanların yürüme/kanat çırpma animasyonları (`AnimatedActor.animate`).
+- **Sesler:** Zıplama, coin toplama, düşmana çarpma, kazanma ve buton tıklama sesleri + döngülü arka plan müziği.
 - **Durgun haldeyken de animasyon:** Kahraman ve düşmanlar için ayrı "idle" kareleri var (nefes alma / hafif kanat kıpırtısı), yürüyüşle karıştırılmadı.
 - **Kendi sınıfların (OOP):** `AnimatedActor` (temel animasyon sınıfı), `Hero`, `Enemy`, `Platform`, `Coin`, `Button` — hareket ve animasyon mantığı bu sınıflarda.
-- **İsimlendirme / PEP8:** Değişken, fonksiyon ve sınıf isimleri açık İngilizce; `pycodestyle` ile kontrol edildi, hatasız.
+- **İsimlendirme / PEP8:** Değişken, fonksiyon ve sınıf isimleri açık İngilizce seçildi; satır uzunlukları ve temel PEP8 düzeni manuel kontrol edildi.
 
 ## Klasör yapısı
 ```
-main.py              -> oyunun tamamı (~250 anlamlı satır)
-images/               -> tüm sprite'lar (generate_assets.py ile üretildi)
-sounds/, music/       -> tüm sesler (generate_sounds.py ile üretildi)
-generate_assets.py    -> görselleri PIL ile sıfırdan çizen script (opsiyonel, kanıt amaçlı)
-generate_sounds.py    -> sesleri sentezleyen script (opsiyonel, kanıt amaçlı)
+main.py          -> oyunun tamamı
+images/          -> sprite ve arka plan görselleri
+sounds/, music/  -> ses efektleri ve arka plan müziği
 ```
-
-`generate_assets.py` ve `generate_sounds.py` dosyalarını GitHub'a projeyle birlikte
-yüklemen, görsellerin/seslerin tamamen orijinal ve senin tarafından üretildiğini
-göstermek açısından işine yarar — istersen kaldırıp sadece `images/`, `sounds/`,
-`music/`, `main.py` dosyalarını da yükleyebilirsin.
