@@ -14,11 +14,9 @@ FIXED_STEP = 1 / 60
 def actor_rect(actor):
     return Rect(actor.left, actor.top, actor.width, actor.height)
 
-
 def play_sound(name):
     if sound_on:
         getattr(sounds, name).play()
-
 
 class AnimatedActor:
     # Karakter animasyonlarını yönetir
@@ -59,7 +57,6 @@ class AnimatedActor:
 
     def draw(self):
         self.actor.draw()
-
 
 class Hero(AnimatedActor):
     SPEED = 200
@@ -134,7 +131,6 @@ class Hero(AnimatedActor):
 
         self.animate(dt)
 
-
 class Enemy(AnimatedActor):
     # Düşman belirlenen alanda gidip gelir
 
@@ -160,7 +156,6 @@ class Enemy(AnimatedActor):
     def hits(self, hero):
         return actor_rect(self.actor).colliderect(actor_rect(hero.actor))
 
-
 class Platform:
     def __init__(self, x, y, tiles):
         self.x = x
@@ -171,7 +166,6 @@ class Platform:
     def draw(self):
         for i in range(self.tiles):
             screen.blit("platform", (self.x + i * TILE_W, self.y))
-
 
 class Coin:
     FRAMES = ["coin_0", "coin_1", "coin_2", "coin_3"]
@@ -202,7 +196,6 @@ class Coin:
             self.collected = True
             return True
         return False
-
 
 class Button:
     def __init__(
@@ -240,7 +233,6 @@ class Button:
             self.callback()
             return True
         return False
-
 
 class IconButton:
     def __init__(self, icon, x, y, width, height, callback):
@@ -372,12 +364,10 @@ def build_level():
         ),
     ]
 
-
 def flag_rect():
     platform = platforms[-1]
     flag_x = platform.x + platform.tiles * TILE_W - 40
     return Rect(flag_x, platform.y - 64, 40, 64)
-
 
 def start_game():
     global game_state
@@ -385,7 +375,6 @@ def start_game():
     game_state = "playing"
     if sound_on:
         music.play("theme")
-
 
 def toggle_sound():
     global sound_on
@@ -395,16 +384,13 @@ def toggle_sound():
     else:
         music.stop()
 
-
 def go_to_menu():
     global game_state
     game_state = "menu"
     music.stop()
 
-
 def exit_game():
     quit()
-
 
 def toggle_pause():
     global game_state
@@ -416,12 +402,10 @@ def toggle_pause():
         if sound_on:
             music.unpause()
 
-
 def pause_button_text():
     if game_state == "paused":
         return "Devam"
     return "Dur"
-
 
 menu_buttons = [
     Button("Oyuna Basla", WIDTH / 2 - 110, 260, 220, 56, start_game),
@@ -439,7 +423,6 @@ gameplay_buttons = [
     IconButton("sound", WIDTH - 98, 12, 38, 34, toggle_sound),
     IconButton("exit", WIDTH - 50, 12, 38, 34, go_to_menu),
 ]
-
 
 def update(dt):
     global game_state, score
@@ -483,7 +466,6 @@ def update_playing(dt):
         game_state = "win"
         music.stop()
 
-
 def draw():
     screen.blit("background", (0, 0))
 
@@ -499,7 +481,6 @@ def draw():
         draw_end_screen("Kazandin!", (60, 170, 90))
     elif game_state == "lose":
         draw_end_screen("Kaybettin!", (170, 60, 60))
-
 
 def draw_menu():
     screen.draw.text(
@@ -520,7 +501,6 @@ def draw_menu():
         color="white",
     )
 
-
 def draw_gameplay(draw_buttons=True):
     for platform in platforms:
         platform.draw()
@@ -539,11 +519,9 @@ def draw_gameplay(draw_buttons=True):
     if draw_buttons:
         draw_gameplay_buttons()
 
-
 def draw_gameplay_buttons():
     for button in gameplay_buttons:
         button.draw()
-
 
 def draw_pause_overlay():
     screen.draw.filled_rect(Rect(0, 0, WIDTH, HEIGHT), (0, 0, 0, 120))
@@ -564,7 +542,6 @@ def draw_pause_overlay():
         ocolor="black",
     )
 
-
 def draw_end_screen(title, color):
     screen.draw.filled_rect(Rect(0, 0, WIDTH, HEIGHT), (0, 0, 0))
     screen.draw.text(title, center=(WIDTH / 2, 220), fontsize=56, color=color)
@@ -577,7 +554,6 @@ def draw_end_screen(title, color):
     )
     for button in end_buttons:
         button.draw()
-
 
 def on_mouse_down(pos):
     if game_state == "menu":
@@ -595,7 +571,6 @@ def on_mouse_down(pos):
             if button.handle_click(pos):
                 play_sound("click")
                 break
-
 
 def on_key_down(key):
     if game_state == "playing" and key in (keys.SPACE, keys.UP, keys.W):
